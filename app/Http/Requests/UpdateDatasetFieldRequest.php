@@ -2,9 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\RequireUpdateFields;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
+use \App\Http\Requests\Concerns\RejectsUnknownFields;
 
 class UpdateDatasetFieldRequest extends FormRequest
 {
@@ -44,6 +47,18 @@ class UpdateDatasetFieldRequest extends FormRequest
                 'nullable',
                 'array',
             ]
+        ];
+    }
+
+    use RejectsUnknownFields;
+    use RequireUpdateFields;
+    public function after(): array
+    {
+        return [
+          function (Validator $validator) {
+            $this->rejectUnknownFields($validator, $this->all());
+            $this->requireUpdateFields($validator, $this->all());
+          }
         ];
     }
 }

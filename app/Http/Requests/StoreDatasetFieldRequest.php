@@ -5,6 +5,8 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use \App\Http\Requests\Concerns\RejectsUnknownFields;
+use Illuminate\Validation\Validator;
 
 class StoreDatasetFieldRequest extends FormRequest
 {
@@ -37,6 +39,15 @@ class StoreDatasetFieldRequest extends FormRequest
                 Rule::in(['string', 'integer', 'boolean','decimal','date']),
             ],
             'rules' => 'nullable|array',
+        ];
+    }
+
+    use RejectsUnknownFields;
+
+    public function after(): array
+    {
+        return [
+            fn(Validator $validator) => $this->rejectUnknownFields($validator, $this->all())
         ];
     }
 }

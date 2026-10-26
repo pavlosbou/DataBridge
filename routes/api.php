@@ -14,11 +14,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/datasets', [DatasetController::class, 'index']);
     Route::post('/datasets', [DatasetController::class, 'store']);
     Route::get('/datasets/{id}', [DatasetController::class, 'show']);
-    Route::put('/datasets/{id}', [DatasetController::class, 'update']);
+    Route::patch('/datasets/{id}', [DatasetController::class, 'update']);
     Route::delete('/datasets/{id}', [DatasetController::class, 'destroy']);
 
     //DatasetFields
     Route::post('/datasets/{id}/fields', [DatasetFieldController::class, 'store']);
     Route::get('/datasets/{id}/fields', [DatasetFieldController::class, 'index']);
     Route::patch('/datasets/{datasetId}/fields/{datasetFieldId}', [DatasetFieldController::class, 'update']);
+    Route::delete('/datasets/{datasetId}/fields/{fieldId}', [DatasetFieldController::class, 'destroy']);
 });

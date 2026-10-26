@@ -53,8 +53,11 @@ class DatasetFieldController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $datasetId, string $datasetFieldId)
     {
-        //
+        $dataset = $request->user()->datasets()->where('id', $datasetId)->firstOrFail();
+        $field = $dataset->fields()->findOrFail($datasetFieldId);
+        $field->delete();
+        return response()->noContent();
     }
 }

@@ -5,6 +5,8 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use \App\Http\Requests\Concerns\RejectsUnknownFields;
+use Illuminate\Validation\Validator;
 
 class UpdateDatasetRequest extends FormRequest
 {
@@ -31,6 +33,15 @@ class UpdateDatasetRequest extends FormRequest
                     ->where('user_id', $this->user()->id)
                     ->ignore($this->route('id'))],
             'description' => 'nullable|string',
+        ];
+    }
+
+    use RejectsUnknownFields;
+
+    public function after(): array
+    {
+        return [
+            fn(Validator $validator) => $this->rejectUnknownFields($validator, $this->all())
         ];
     }
 }
