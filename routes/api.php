@@ -1,19 +1,24 @@
 <?php
 
+use App\Http\Controllers\Api\DatasetFieldController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DatasetController;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
 
-Route::middleware('auth:sanctum')->get('/datasets', [DatasetController::class, 'index']);
+    //Datasets
+    Route::get('/datasets', [DatasetController::class, 'index']);
+    Route::post('/datasets', [DatasetController::class, 'store']);
+    Route::get('/datasets/{id}', [DatasetController::class, 'show']);
+    Route::put('/datasets/{id}', [DatasetController::class, 'update']);
+    Route::delete('/datasets/{id}', [DatasetController::class, 'destroy']);
 
-Route::middleware('auth:sanctum')->post('/datasets', [DatasetController::class, 'store']);
-
-Route::middleware('auth:sanctum')->get('/datasets/{id}', [DatasetController::class, 'show']);
-
-Route::middleware('auth:sanctum')->patch('/datasets/{id}', [DatasetController::class, 'update']);
-
-Route::middleware('auth:sanctum')->delete('/datasets/{id}', [DatasetController::class, 'destroy']);
+    //DatasetFields
+    Route::post('/datasets/{id}/fields', [DatasetFieldController::class, 'store']);
+    Route::get('/datasets/{id}/fields', [DatasetFieldController::class, 'index']);
+    Route::patch('/datasets/{datasetId}/fields/{datasetFieldId}', [DatasetFieldController::class, 'update']);
+});
