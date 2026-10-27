@@ -21,4 +21,9 @@ class Dataset extends Model
     {
         return $this->hasMany(DatasetField::class);
     }
+
+    public function imports(): HasMany
+    {
+        return $this->hasMany(DatasetImport::class);
+    }
 }

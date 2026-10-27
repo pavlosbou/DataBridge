@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\DatasetFieldController;
+use App\Http\Controllers\Api\DatasetImportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DatasetController;
@@ -22,4 +23,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/datasets/{id}/fields', [DatasetFieldController::class, 'index']);
     Route::patch('/datasets/{datasetId}/fields/{datasetFieldId}', [DatasetFieldController::class, 'update']);
     Route::delete('/datasets/{datasetId}/fields/{fieldId}', [DatasetFieldController::class, 'destroy']);
+
+    //DatasetImports
+    Route::post('/datasets/{datasetId}/imports', [DatasetImportController::class, 'store']);
+    Route::get('/datasets/{datasetId}/imports/{importId}/headers', [DatasetImportController::class, 'headers']);
 });
