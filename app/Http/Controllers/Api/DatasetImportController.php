@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDatasetImportRequest;
+use App\Services\CsvAnalysisService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -101,5 +102,15 @@ class DatasetImportController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function analyze(Request $request, string $datasetId, string $importId, CsvAnalysisService $csvAnalysisService)
+    {
+        $dataset = $request->user()->datasets()->where('id', $datasetId)->firstOrFail();
+        $import = $dataset->imports()->where('id', $importId)->firstOrFail();
+        $analysis = $csvAnalysisService->analyze($import->storage_path);
+        return response()->json([
+            'import_id' => $import->id,
+             ...$analysis]);
     }
 }

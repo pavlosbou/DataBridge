@@ -27,4 +27,5 @@ Route::middleware('auth:sanctum')->group(function () {
     //DatasetImports
     Route::post('/datasets/{datasetId}/imports', [DatasetImportController::class, 'store']);
     Route::get('/datasets/{datasetId}/imports/{importId}/headers', [DatasetImportController::class, 'headers']);
+    Route::get('/datasets/{datasetId}/imports/{importId}/analyze', [DatasetImportController::class, 'analyze']);
 });
