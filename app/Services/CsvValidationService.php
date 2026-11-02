@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Storage;
+
 class CsvValidationService{
 
     public function validateValue(string $value, string $type): bool
@@ -56,5 +58,56 @@ class CsvValidationService{
             }
         }
         return $validation_errors;
+    }
+
+    public function validateFile(string $path, array $fields): array
+    {
+        $storage = Storage::disk('local');
+        if (!$storage->exists($path)) {
+            throw new \RuntimeException('Uploaded csv file not found');
+        }
+
+        $absolutePath = $storage->path($path);
+        $file = fopen($absolutePath, 'r');
+
+        if ($file === false) {
+            throw new \RuntimeException('Unable to open csv file');
+        }
+
+        try {
+            $headers = fgetcsv($file);
+            if ($headers === false || $headers === [null]) {
+                throw new \RuntimeException('Csv file is empty');
+            }
+
+            $totalRows = 0;
+            $countInvalidRows = 0;
+            $validationErrors = [];
+            while (($row = fgetcsv($file)) !== false) {
+                $rowErrors = $this->validateRow($row, $fields, $totalRows + 2);
+
+
+                if (!empty($rowErrors)) {
+                    $countInvalidRows++;
+                    foreach ($rowErrors as $rowError) {
+                        $validationErrors[] = $rowError;
+                    }
+                }
+                $totalRows++;
+            }
+
+        } finally {
+            fclose($file);
+        }
+
+        $countValidRows = $totalRows - $countInvalidRows;
+
+        return [
+            'headers' => $headers,
+            'totalRows' => $totalRows,
+            'validationErrors' => $validationErrors,
+            'invalidRows' => $countInvalidRows,
+            'validRows' => $countValidRows
+        ];
     }
 }

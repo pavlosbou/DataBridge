@@ -3,9 +3,10 @@
 namespace Unit;
 
 use App\Services\CsvValidationService;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
-
+//use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 class CsvValidationServiceTest extends TestCase
 {
 
@@ -210,5 +211,123 @@ class CsvValidationServiceTest extends TestCase
                 ],
             ]
         ];
+    }
+
+    public  function test_it_throws_exception_when_file_does_not_exist(): void
+    {
+        Storage::fake('local');
+
+        $service = new CsvValidationService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Uploaded csv file not found');
+
+        $service->validateFile('imports/missing.csv',[]);
+
+
+    }
+
+    public function test_it_throws_exception_when_csv_is_empty(): void
+    {
+        Storage::fake('local');
+
+        Storage::disk('local')->put('imports/empty.csv', '');
+
+        $service = new CsvValidationService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Csv file is empty');
+
+        $service->validateFile('imports/empty.csv', []);
+    }
+
+    public function test_csv_contains_only_headers(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('imports/headers.csv', 'name,age');
+
+        $service = new CsvValidationService();
+
+        $result = $service->validateFile(
+            'imports/headers.csv',
+            [
+                ['name' => 'name', 'type' => 'string'],
+                ['age' => 'age', 'type' => 'integer'],
+            ]
+        );
+
+        $this->assertSame(['name','age'], $result['headers']);
+        $this->assertSame(0, $result['totalRows']);
+        $this->assertSame([], $result['validationErrors']);
+        $this->assertSame(0,$result['invalidRows']);
+        $this->assertSame(0,$result['validRows']);
+
+    }
+
+    public function test_it_validates_file_when_all_rows_are_valid(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put(
+            'imports/valid.csv',
+            "name,age,active\n" .
+            "John,25,true\n" .
+            "Maria,17,false\n" .
+            "Alex,32,true\n"
+        );
+
+        $service = new CsvValidationService();
+
+        $result = $service->validateFile(
+            'imports/valid.csv',
+            [
+                ['name' => 'name', 'type' => 'string'],
+                ['name' => 'age', 'type' => 'integer'],
+                ['name' => 'active', 'type' => 'boolean'],
+            ]
+        );
+
+        $this->assertSame(['name', 'age', 'active'], $result['headers']);
+        $this->assertSame(3, $result['totalRows']);
+        $this->assertSame([], $result['validationErrors']);
+        $this->assertSame(0,$result['invalidRows']);
+        $this->assertSame(3,$result['validRows']);
+
+    }
+
+    public function test_it_accumulates_errors_and_counts_invalid_rows_correctly(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put(
+            'imports/invalid.csv',
+            "name,age,active\n" .
+            "John,25,true\n" .
+            "Maria,seventeen,no\n" .
+            "Alex,32,false\n".
+            "Chris,abc,yes"
+        );
+
+        $service = new CsvValidationService();
+        $result = $service->validateFile(
+            'imports/invalid.csv',
+            [
+                ['name' => 'name', 'type' => 'string'],
+                ['name' => 'age', 'type' => 'integer'],
+                ['name' => 'active', 'type' => 'boolean'],
+            ]
+        );
+
+        $this->assertSame(['name', 'age', 'active'], $result['headers']);
+        $this->assertSame(4, $result['totalRows']);
+        $this->assertSame(2, $result['validRows']);
+        $this->assertSame(2, $result['invalidRows']);
+
+        $this->assertCount(4, $result['validationErrors']);
+
+        $errorRows = array_unique(
+            array_column($result['validationErrors'], 'row'),
+        );
+        $this->assertSame([3,5], array_values($errorRows));
+
+
     }
 }
