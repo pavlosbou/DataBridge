@@ -8,6 +8,7 @@ use App\Services\CsvAnalysisService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Services\CsvValidationService;
 
 class DatasetImportController extends Controller
 {
@@ -112,5 +113,48 @@ class DatasetImportController extends Controller
         return response()->json([
             'import_id' => $import->id,
              ...$analysis]);
+    }
+
+    public function validate(Request $request, string $datasetId, string $importId, CsvValidationService $csvValidationService)
+    {
+        $dataset = $request->user()->datasets()->where('id', $datasetId)->firstOrFail();
+        $import = $dataset->imports()->where('id', $importId)->firstOrFail();
+        $fields = $dataset->fields()->get(['name', 'type'])->toArray();
+
+
+        $validation = $csvValidationService->validateFile(
+            $import->storage_path,
+            $fields,
+        );
+
+        if ($validation['structureErrors']) {
+            return response()->json([
+                'structureErrors' => $validation['structureErrors'],
+                'headers' => $validation['headers'],
+                'missingHeaders' => $validation['missingHeaders'],
+                'unknownHeaders' => $validation['unknownHeaders'],
+                'duplicateHeaders' => $validation['duplicateHeaders'],
+            ], 422);
+        }
+        $status = $validation['invalidRows'] === 0
+            ? 'completed'
+            : 'completed_with_errors'
+        ;
+
+        $import->update([
+            'status' => $status,
+            'total_rows' => $validation['totalRows'],
+            'valid_rows' => $validation['validRows'],
+            'invalid_rows' => $validation['invalidRows'],
+        ]);
+
+        return response()->json([
+            'import_id' => $import->id,
+            'status' => $status,
+            'total_rows' => $validation['totalRows'],
+            'valid_rows' => $validation['validRows'],
+            'invalid_rows' => $validation['invalidRows'],
+            'validation_errors' => $validation['validationErrors'],
+        ]);
     }
 }
