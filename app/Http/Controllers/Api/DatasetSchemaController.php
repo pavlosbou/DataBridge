@@ -16,10 +16,20 @@ class DatasetSchemaController extends Controller
         $dataset = $request->user()->datasets()->findOrFail($datasetId);
         $fields = $request->validated('fields');
         $created_fields = DB::transaction(function () use ($dataset, $fields) {
+
             $dataset->fields()->delete();
             foreach ($fields as $field) {
                 $dataset->fields()->create($field);
             }
+
+
+            $dataset->imports()->update([
+                'status' => 'uploaded',
+                'total_rows' => null,
+                'valid_rows' => null,
+                'invalid_rows' => null,
+            ]);
+
             return $dataset->fields()->get();
 
         });
