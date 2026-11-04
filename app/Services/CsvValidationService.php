@@ -79,12 +79,49 @@ class CsvValidationService{
             if ($headers === false || $headers === [null]) {
                 throw new \RuntimeException('Csv file is empty');
             }
+            $duplicate_headers = array_values(array_diff_assoc($headers, array_unique($headers)));
+
+            $field_types = [];
+            foreach ($fields as $field) {
+                $field_types[$field['name']] = $field['type'];
+            }
+
+            $new_fields = [];
+            $unknown_headers = [];
+
+            $missing_headers = array_diff(array_keys($field_types), $headers);
+            $missing_headers = array_values($missing_headers);
+
+            foreach ($headers as $header) {
+                if (!array_key_exists($header, $field_types)) {
+                    $unknown_headers[] = $header;
+                }else{
+                    $new_fields[] = [
+                        'name' => $header,
+                        'type' => $field_types[$header],
+                    ];
+                }
+            }
+
+            if (!empty($missing_headers) || !empty($unknown_headers) || !empty($duplicate_headers)) {
+                return [
+                    'headers' => $headers,
+                    'totalRows' => null,
+                    'validationErrors' => [],
+                    'invalidRows' => null,
+                    'validRows' => null,
+                    'missingHeaders' => $missing_headers,
+                    'unknownHeaders' => $unknown_headers,
+                    'duplicateHeaders' => $duplicate_headers,
+                    'structureErrors' => true
+                ];
+            }
 
             $totalRows = 0;
             $countInvalidRows = 0;
             $validationErrors = [];
             while (($row = fgetcsv($file)) !== false) {
-                $rowErrors = $this->validateRow($row, $fields, $totalRows + 2);
+                $rowErrors = $this->validateRow($row, $new_fields, $totalRows + 2);
 
 
                 if (!empty($rowErrors)) {
@@ -107,7 +144,11 @@ class CsvValidationService{
             'totalRows' => $totalRows,
             'validationErrors' => $validationErrors,
             'invalidRows' => $countInvalidRows,
-            'validRows' => $countValidRows
+            'validRows' => $countValidRows,
+            'missingHeaders' => $missing_headers,
+            'unknownHeaders' => $unknown_headers,
+            'duplicateHeaders' => $duplicate_headers,
+            'structureErrors' => false
         ];
     }
 }

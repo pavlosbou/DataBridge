@@ -252,7 +252,7 @@ class CsvValidationServiceTest extends TestCase
             'imports/headers.csv',
             [
                 ['name' => 'name', 'type' => 'string'],
-                ['age' => 'age', 'type' => 'integer'],
+                ['name' => 'age', 'type' => 'integer'],
             ]
         );
 
@@ -261,6 +261,10 @@ class CsvValidationServiceTest extends TestCase
         $this->assertSame([], $result['validationErrors']);
         $this->assertSame(0,$result['invalidRows']);
         $this->assertSame(0,$result['validRows']);
+        $this->assertSame(false,$result['structureErrors']);
+        $this->assertSame([],$result['missingHeaders']);
+        $this->assertSame([],$result['unknownHeaders']);
+        $this->assertSame([],$result['duplicateHeaders']);
 
     }
 
@@ -329,5 +333,36 @@ class CsvValidationServiceTest extends TestCase
         $this->assertSame([3,5], array_values($errorRows));
 
 
+    }
+
+    public function test_when_headers_dont_match_the_schema(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put(
+            'imports/invalid.csv',
+            "name,age,email,age\n".
+            "John,25,john@example.com,30\n".
+            "Maria,17,maria@example.com,20"
+        );
+
+        $service = new CsvValidationService();
+        $result = $service->validateFile(
+            'imports/invalid.csv',
+            [
+                ['name' => 'name', 'type' => 'string'],
+                ['name' => 'age', 'type' => 'integer'],
+                ['name' => 'salary', 'type' => 'decimal'],
+            ]
+        );
+
+        $this->assertSame(['name', 'age', 'email','age'], $result['headers']);
+        $this->assertSame(null, $result['totalRows']);
+        $this->assertSame([], $result['validationErrors']);
+        $this->assertSame(null,$result['invalidRows']);
+        $this->assertSame(null,$result['validRows']);
+        $this->assertSame(['salary'],$result['missingHeaders']);
+        $this->assertSame(['email'],$result['unknownHeaders']);
+        $this->assertSame(['age'],$result['duplicateHeaders']);
+        $this->assertSame(true,$result['structureErrors']);
     }
 }
