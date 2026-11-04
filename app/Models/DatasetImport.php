@@ -14,6 +14,7 @@ class DatasetImport extends Model
         'total_rows',
         'valid_rows',
         'invalid_rows',
+        'working_storage_path',
     ];
     public function dataset(): BelongsTo
     {

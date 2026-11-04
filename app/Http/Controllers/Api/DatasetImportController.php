@@ -9,6 +9,9 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Services\CsvValidationService;
+use Illuminate\Support\Str;
+use Throwable;
+use RuntimeException;
 
 class DatasetImportController extends Controller
 {
@@ -23,22 +26,41 @@ class DatasetImportController extends Controller
     /**
      * Store a newly created resource in storage.
      * @throws Exception
+     * @throws Throwable
      */
     public function store(StoreDatasetImportRequest $request, string $datasetId)
     {
 
         $dataset = $request->user()->datasets()->where('id', $datasetId)->firstOrFail();
         $file = $request->file('file');
-        $path = $file->store('imports', 'local');
+        $path = null;
+        $workingPath = null;
 
         try {
+            $path = $file->store('imports', 'local');
+            if ($path === false) {
+                throw new RuntimeException('Unable to store original csv file.');
+            }
+
+            $workingPath = 'imports/working/' . Str::uuid() . '.csv';
+
+            if (!Storage::disk('local')->copy($path, $workingPath)){
+                throw new RuntimeException('Unable to create working copy');
+            };
+
             $datasetImports = $dataset->imports()->create([
                 'original_filename' => $file->getClientOriginalName(),
                 'storage_path' => $path,
+                'working_storage_path' => $workingPath,
             ]);
             return response()->json($datasetImports, 201);
-        }catch (Exception $exception){
-            Storage::disk('local')->delete($path);
+        }catch (Throwable $exception){
+            if (!empty($path)) {
+                Storage::disk('local')->delete($path);
+            }
+            if (!empty($workingPath)) {
+                Storage::disk('local')->delete($workingPath);
+            }
             throw $exception;
         }
 
